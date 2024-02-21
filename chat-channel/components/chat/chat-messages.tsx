@@ -9,12 +9,13 @@ import { useChatQuery } from "@/hooks/use-chat-query";
 
 import { ChatWelcome } from "./chat-welcome";
 import { ChatItem } from "./chat-item";
+import { useChatSocket } from "@/hooks/use-chat-socket";
 
 type MessageWithMemberWithProfile = Message & {
   member: Member & {
-    profile: Profile
-  }
-}
+    profile: Profile;
+  };
+};
 
 interface ChatMessagesProps {
   name: string;
@@ -41,19 +42,17 @@ export const ChatMessages = ({
   type,
 }: ChatMessagesProps) => {
   const queryKey = `chat:${chatId}`;
+  const addKey = `chat:${chatId}:messages`;
+  const updateKey = `chat:${chatId}:messages:update`;
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    status,
-  } = useChatQuery({
-    queryKey,
-    apiUrl,
-    paramKey,
-    paramValue,
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
+    useChatQuery({
+      queryKey,
+      apiUrl,
+      paramKey,
+      paramValue,
+    });
+  useChatSocket({ queryKey, addKey, updateKey });
 
   if (status === "pending") {
     return (
@@ -63,7 +62,7 @@ export const ChatMessages = ({
           Loading messages...
         </p>
       </div>
-    )
+    );
   }
 
   if (status === "error") {
@@ -74,22 +73,19 @@ export const ChatMessages = ({
           Something went wrong!
         </p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="flex-1 flex flex-col py-4 overflow-y-auto">
       <div className="flex-1" />
-      <ChatWelcome
-        type={type}
-        name={name}
-      />
+      <ChatWelcome type={type} name={name} />
       <div className="flex flex-col-reverse mt-auto">
         {data?.pages?.map((group, i) => (
           <Fragment key={i}>
             {group.items.map((message: MessageWithMemberWithProfile) => (
               <ChatItem
-              key={message.id}
+                key={message.id}
                 id={message.id}
                 currentMember={member}
                 member={message.member}
@@ -99,11 +95,12 @@ export const ChatMessages = ({
                 timestamp={format(new Date(message.createdAt), DATE_FORMAT)}
                 isUpdated={message.updatedAt !== message.createdAt}
                 socketUrl={socketUrl}
-                socketQuery={socketQuery} />
+                socketQuery={socketQuery}
+              />
             ))}
           </Fragment>
         ))}
       </div>
     </div>
-  )
-}
+  );
+};
